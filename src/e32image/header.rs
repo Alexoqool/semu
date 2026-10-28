@@ -40,7 +40,6 @@ pub struct E32ImageHeader {
     pub time_lo: u32,
     pub time_hi: u32,
     pub flags: u32,
-    pub flags_parsed: Flags,
     pub code_size: u32,
     pub data_size: u32,
     pub heap_size_min: u32,
@@ -80,6 +79,21 @@ pub struct E32ImageHeaderV {
     pub export_desc: [u8; 1],
 }
 
+impl Flags {
+    pub fn parse(bytes: [u8; 4]) -> Self {
+        let flags = u32::from_le_bytes(bytes);
+        Self {
+            executable_type: read_bit(bytes[0], 0),
+            call_entry_point: read_bit(bytes[0], 1),
+            fixed_address: read_bit(bytes[0], 2),
+            abi: (flags >> 3) & 0x3,
+            entry_point_type: (flags >> 5) & 7,
+            header_format: (flags >> 24) & 0xF,
+            import_format: (flags >> 28) & 0xF,
+        }
+    }
+}
+
 impl E32ImageHeader {
     pub fn parse(data: &Vec<u8>) -> Self {
         Self {
@@ -102,23 +116,6 @@ impl E32ImageHeader {
             time_lo: read_u32(data, 36),
             time_hi: read_u32(data, 40),
             flags: read_u32(data, 44),
-            flags_parsed: Flags {
-                executable_type: read_bit(data[44], 0),
-                call_entry_point: read_bit(data[44], 1),
-                fixed_address: read_bit(data[44], 2),
-                // too lazy to implement or think
-                // about something better
-                //
-                // flags_parsed should probably be moved
-                // out of the parsed header
-                // and use a borrowed header
-                // and file's bytecode
-                // to get data
-                abi: 0,
-                entry_point_type: 0,
-                header_format: 0,
-                import_format: 0,
-            },
             code_size: read_u32(data, 48),
             data_size: read_u32(data, 52),
             heap_size_min: read_u32(data, 56),
