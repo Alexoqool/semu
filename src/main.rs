@@ -12,11 +12,10 @@ fn main() {
     let file = args().nth(1).unwrap();
     let data = read(file).unwrap();
     let header = E32ImageHeader::parse(&data);
-    // headers should probably be
-    // borrowed too
-    let header_j = E32ImageHeaderJ::parse(header, &data);
-    let header_v = E32ImageHeaderV::parse(header_j, &data);
+    let header_j = E32ImageHeaderJ::parse(&data);
+    let header_v = E32ImageHeaderV::parse(&data);
     let flags_parsed = HeaderFlags::parse(data.get(44..48).unwrap().try_into().unwrap());
+
     println!(
         "type: {}",
         match flags_parsed.executable_type {
@@ -81,7 +80,7 @@ fn main() {
 
     println!(
         "priority: {}",
-        match header_v.header_j.header.priority {
+        match header.priority {
             150 => "low",
             250 => "background",
             350 => "foreground",
@@ -95,7 +94,7 @@ fn main() {
     );
     println!(
         "cpu: {}",
-        match header_v.header_j.header.cpu {
+        match header.cpu {
             0x1000 => "x86",
             0x2000 => "armv4",
             0x2001 => "armv5",
@@ -106,19 +105,16 @@ fn main() {
     );
     println!(
         "Tools version: {}.{} ({})",
-        header_v.header_j.header.tools_version.major,
-        header_v.header_j.header.tools_version.minor,
-        header_v.header_j.header.tools_version.build
+        header.tools_version.major, header.tools_version.minor, header.tools_version.build
     );
 
     println!(
         "Module version: {}.{}",
-        header_v.header_j.header.module_version.major,
-        header_v.header_j.header.module_version.minor
+        header.module_version.major, header.module_version.minor
     );
 
     if flags_parsed.header_format >= 1 {
-        println!("uncompressed size: {}", header_v.header_j.uncompressed_size);
+        println!("uncompressed size: {}", header_j.uncompressed_size);
     }
 
     if flags_parsed.header_format == 2 {

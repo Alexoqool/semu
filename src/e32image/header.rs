@@ -139,18 +139,18 @@ impl E32ImageHeader {
 }
 
 impl E32ImageHeaderJ {
-    pub fn parse(base_header: E32ImageHeader, data: &Vec<u8>) -> Self {
+    pub fn parse(data: &Vec<u8>) -> Self {
         Self {
-            header: base_header,
+            header: E32ImageHeader::parse(data),
             uncompressed_size: read_u32(data, 124),
         }
     }
 }
 
 impl E32ImageHeaderV {
-    pub fn parse(base_header: E32ImageHeaderJ, data: &Vec<u8>) -> Self {
+    pub fn parse(data: &Vec<u8>) -> Self {
         Self {
-            header_j: base_header,
+            header_j: E32ImageHeaderJ::parse(data),
             security_info: SecurityInfo {
                 secure_id: read_u32(data, 128),
                 vendor_id: read_u32(data, 132),
