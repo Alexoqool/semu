@@ -1,6 +1,6 @@
 use crate::utils::{read_bit, read_u16, read_u32};
 
-pub struct Flags {
+pub struct HeaderFlags {
     pub executable_type: bool,
     pub call_entry_point: bool,
     pub fixed_address: bool,
@@ -62,24 +62,22 @@ pub struct E32ImageHeader {
     pub cpu: u16,
 }
 
-// untested
 pub struct E32ImageHeaderJ {
-    pub basic: E32ImageHeader,
+    pub header: E32ImageHeader,
     pub uncompressed_size: u32,
 }
 
-// untested
 pub struct E32ImageHeaderV {
-    pub basic: E32ImageHeaderJ,
+    pub header_j: E32ImageHeaderJ,
     pub security_info: SecurityInfo,
     pub exception_descriptor: u32,
     pub spare2: u32,
     pub export_desc_size: u16,
     pub export_desc_type: u8,
-    pub export_desc: [u8; 1],
+    pub export_desc: Vec<u8>,
 }
 
-impl Flags {
+impl HeaderFlags {
     pub fn parse(bytes: [u8; 4]) -> Self {
         let flags = u32::from_le_bytes(bytes);
         Self {
@@ -136,6 +134,35 @@ impl E32ImageHeader {
             data_reloc_offset: read_u32(data, 116),
             priority: read_u16(data, 120),
             cpu: read_u16(data, 122),
+        }
+    }
+}
+
+impl E32ImageHeaderJ {
+    pub fn parse(base_header: E32ImageHeader, data: &Vec<u8>) -> Self {
+        Self {
+            header: base_header,
+            uncompressed_size: read_u32(data, 124),
+        }
+    }
+}
+
+impl E32ImageHeaderV {
+    pub fn parse(base_header: E32ImageHeaderJ, data: &Vec<u8>) -> Self {
+        Self {
+            header_j: base_header,
+            security_info: SecurityInfo {
+                secure_id: read_u32(data, 128),
+                vendor_id: read_u32(data, 132),
+                capabilities: [read_u32(data, 136), read_u32(data, 140)],
+            },
+            exception_descriptor: read_u32(data, 144),
+            spare2: read_u32(data, 148),
+            export_desc_size: read_u16(data, 152),
+            export_desc_type: data[154],
+            // uint8_t  iExportDesc[1];
+            // description of holes in export table - extend
+            export_desc: vec![data[155]],
         }
     }
 }
