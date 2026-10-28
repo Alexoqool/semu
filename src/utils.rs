@@ -1,3 +1,8 @@
+pub fn read_bit(byte: u8, bit: usize) -> bool {
+    let state = (byte >> bit) & 0b1;
+    if state == 1 { true } else { false }
+}
+
 pub fn read_u16(data: &Vec<u8>, start: usize) -> u16 {
     let end = start + 2;
     let slice = data.get(start..end).unwrap();

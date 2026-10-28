@@ -13,6 +13,14 @@ fn main() {
     let data = read(file).unwrap();
     let header = header::E32ImageHeader::parse(&data);
     println!(
+        "type: {}",
+        match header.flags_parsed.executable_type {
+            true => "dll",
+            false => "exe",
+        }
+    );
+
+    println!(
         "priority: {}",
         match header.priority {
             150 => "low",
@@ -36,5 +44,13 @@ fn main() {
             0x4000 => "mcore",
             _ => "unknown",
         }
+    );
+    println!(
+        "Tools version: {}.{} ({})",
+        header.tools_version.major, header.tools_version.minor, header.tools_version.build
+    );
+    println!(
+        "Module version: {}.{}",
+        header.module_version.major, header.module_version.minor
     );
 }

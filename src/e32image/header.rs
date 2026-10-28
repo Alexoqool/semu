@@ -1,15 +1,30 @@
-use crate::utils::{read_u16, read_u32};
+use crate::utils::{read_bit, read_u16, read_u32};
 
-struct ToolVersion {
-    major: u8,
-    minor: u8,
-    build: u16,
+pub struct Flags {
+    pub executable_type: bool,
+    pub call_entry_point: bool,
+    pub fixed_address: bool,
+    pub abi: u32,
+    pub entry_point_type: u32,
+    pub header_format: u32,
+    pub import_format: u32,
 }
 
-struct SecurityInfo {
-    secure_id: u32,
-    vendor_id: u32,
-    capabilities: [u32; 2],
+pub struct ModuleVersion {
+    pub major: u16,
+    pub minor: u16,
+}
+
+pub struct ToolVersion {
+    pub major: u8,
+    pub minor: u8,
+    pub build: u16,
+}
+
+pub struct SecurityInfo {
+    pub secure_id: u32,
+    pub vendor_id: u32,
+    pub capabilities: [u32; 2],
 }
 
 pub struct E32ImageHeader {
@@ -19,12 +34,13 @@ pub struct E32ImageHeader {
     pub uid_checksum: u32,
     pub signature: u32,
     pub header_crc: u32,
-    pub module_version: u32,
+    pub module_version: ModuleVersion,
     pub compression_type: u32,
     pub tools_version: ToolVersion,
     pub time_lo: u32,
     pub time_hi: u32,
     pub flags: u32,
+    pub flags_parsed: Flags,
     pub code_size: u32,
     pub data_size: u32,
     pub heap_size_min: u32,
@@ -50,7 +66,7 @@ pub struct E32ImageHeader {
 // untested
 pub struct E32ImageHeaderJ {
     pub basic: E32ImageHeader,
-    pub uncompressex_size: u32,
+    pub uncompressed_size: u32,
 }
 
 // untested
@@ -73,7 +89,10 @@ impl E32ImageHeader {
             uid_checksum: read_u32(data, 12),
             signature: read_u32(data, 16),
             header_crc: read_u32(data, 20),
-            module_version: read_u32(data, 24),
+            module_version: ModuleVersion {
+                major: read_u16(data, 24),
+                minor: read_u16(data, 26),
+            },
             compression_type: read_u32(data, 28),
             tools_version: ToolVersion {
                 major: data[32],
@@ -83,6 +102,23 @@ impl E32ImageHeader {
             time_lo: read_u32(data, 36),
             time_hi: read_u32(data, 40),
             flags: read_u32(data, 44),
+            flags_parsed: Flags {
+                executable_type: read_bit(data[44], 0),
+                call_entry_point: read_bit(data[44], 1),
+                fixed_address: read_bit(data[44], 2),
+                // too lazy to implement or think
+                // about something better
+                //
+                // flags_parsed should probably be moved
+                // out of the parsed header
+                // and use a borrowed header
+                // and file's bytecode
+                // to get data
+                abi: 0,
+                entry_point_type: 0,
+                header_format: 0,
+                import_format: 0,
+            },
             code_size: read_u32(data, 48),
             data_size: read_u32(data, 52),
             heap_size_min: read_u32(data, 56),
