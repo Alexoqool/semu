@@ -10,23 +10,6 @@ pub struct HeaderFlags {
     pub import_format: u32,
 }
 
-pub struct ModuleVersion {
-    pub major: u16,
-    pub minor: u16,
-}
-
-pub struct ToolVersion {
-    pub major: u8,
-    pub minor: u8,
-    pub build: u16,
-}
-
-pub struct SecurityInfo {
-    pub secure_id: u32,
-    pub vendor_id: u32,
-    pub capabilities: [u32; 2],
-}
-
 pub struct E32ImageHeader {
     pub uid1: u32,
     pub uid2: u32,
@@ -34,9 +17,12 @@ pub struct E32ImageHeader {
     pub uid_checksum: u32,
     pub signature: u32,
     pub header_crc: u32,
-    pub module_version: ModuleVersion,
+    pub major_ver: u16,
+    pub minor_ver: u16,
     pub compression_type: u32,
-    pub tools_version: ToolVersion,
+    pub tools_major_ver: u8,
+    pub tools_minor_ver: u8,
+    pub tools_build: u16,
     pub time_lo: u32,
     pub time_hi: u32,
     pub flags: u32,
@@ -69,7 +55,9 @@ pub struct E32ImageHeaderJ {
 
 pub struct E32ImageHeaderV {
     pub header_j: E32ImageHeaderJ,
-    pub security_info: SecurityInfo,
+    pub secure_id: u32,
+    pub vendor_id: u32,
+    pub capabilities: [u32; 2],
     pub exception_descriptor: u32,
     pub spare2: u32,
     pub export_desc_size: u16,
@@ -84,7 +72,7 @@ impl HeaderFlags {
             executable_type: read_bit(bytes[0], 0),
             call_entry_point: read_bit(bytes[0], 1),
             fixed_address: read_bit(bytes[0], 2),
-            abi: (flags >> 3) & 0x3,
+            abi: (flags >> 3) & 3,
             entry_point_type: (flags >> 5) & 7,
             header_format: (flags >> 24) & 0xF,
             import_format: (flags >> 28) & 0xF,
@@ -101,16 +89,12 @@ impl E32ImageHeader {
             uid_checksum: read_u32(data, 12),
             signature: read_u32(data, 16),
             header_crc: read_u32(data, 20),
-            module_version: ModuleVersion {
-                major: read_u16(data, 24),
-                minor: read_u16(data, 26),
-            },
+            major_ver: read_u16(data, 24),
+            minor_ver: read_u16(data, 26),
             compression_type: read_u32(data, 28),
-            tools_version: ToolVersion {
-                major: data[32],
-                minor: data[33],
-                build: read_u16(data, 34),
-            },
+            tools_major_ver: data[32],
+            tools_minor_ver: data[33],
+            tools_build: read_u16(data, 34),
             time_lo: read_u32(data, 36),
             time_hi: read_u32(data, 40),
             flags: read_u32(data, 44),
@@ -151,11 +135,9 @@ impl E32ImageHeaderV {
     pub fn parse(data: &Vec<u8>) -> Self {
         Self {
             header_j: E32ImageHeaderJ::parse(data),
-            security_info: SecurityInfo {
-                secure_id: read_u32(data, 128),
-                vendor_id: read_u32(data, 132),
-                capabilities: [read_u32(data, 136), read_u32(data, 140)],
-            },
+            secure_id: read_u32(data, 128),
+            vendor_id: read_u32(data, 132),
+            capabilities: [read_u32(data, 136), read_u32(data, 140)],
             exception_descriptor: read_u32(data, 144),
             spare2: read_u32(data, 148),
             export_desc_size: read_u16(data, 152),
