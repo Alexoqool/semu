@@ -2,6 +2,7 @@
 
 use crate::utils::{read_u16, read_u32};
 
+#[allow(dead_code)]
 pub struct SISHeader {
     pub uid1: u32,
     pub uid2: u32,
@@ -28,6 +29,7 @@ pub struct SISHeader {
     pub name_offset: u32,
 }
 
+#[allow(dead_code)]
 pub struct SISHeader6 {
     header: SISHeader,
     pub signature_offset: u32,
@@ -63,6 +65,36 @@ impl SISHeader {
             certificates_offset: read_u32(data, 60),
             name_offset: read_u32(data, 64),
         }
+    }
+
+    pub fn print_info(header: &Self) {
+        println!(
+            "Installer version: {}",
+            match header.installer_ver {
+                68 | 100 => "EPOC 3-5",
+                200 => "EPOC 6",
+                _ => "unknown",
+            }
+        );
+
+        println!("Languages count: {}", header.langs_count);
+        println!("Files count: {}", header.files_count);
+        println!("Capabilities count: {}", header.capabilities_count);
+
+        println!(
+            "Type: {}",
+            match header.sis_type {
+                0 => "SISAPP",
+                1 => "SISSYSTEM (EPOC 6)",
+                2 => "SISOPTION (EPOC 6)",
+                3 => "SISCONFIG (EPOC 6)",
+                4 => "SISPATCH (EPOC 6)",
+                5 => "SISUPGRADE (EPOC 6)",
+                _ => "unknown",
+            }
+        );
+
+        println!("App version: {}.{}", header.major_ver, header.minor_ver);
     }
 }
 
