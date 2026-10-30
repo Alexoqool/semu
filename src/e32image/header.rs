@@ -68,31 +68,6 @@ pub struct V1Header {
 }
 
 #[allow(dead_code)]
-pub struct V1HeaderJ {
-    pub header: V1Header,
-    pub compression_type: u32,
-    pub uncompressed_size: u32,
-}
-
-// no idea if the old V-format
-// header was actually like this
-// i haven't found any info about it
-// the only thing i know is that
-// it probably existed back then
-#[allow(dead_code)]
-pub struct V1HeaderV {
-    pub header_j: V1HeaderJ,
-    pub secure_id: u32,
-    pub vendor_id: u32,
-    pub capabilities: [u32; 2],
-    pub exception_descriptor: u32,
-    pub spare2: u32,
-    pub export_desc_size: u16,
-    pub export_desc_type: u8,
-    pub export_desc: Vec<u8>,
-}
-
-#[allow(dead_code)]
 pub struct V2Header {
     pub uid1: u32,
     pub uid2: u32,
@@ -267,40 +242,6 @@ impl V1Header {
     }
 }
 
-impl V1HeaderJ {
-    pub fn parse(data: &Vec<u8>) -> Self {
-        Self {
-            header: V1Header::parse(data),
-            compression_type: read_u32(data, 124),
-            uncompressed_size: read_u32(data, 128),
-        }
-    }
-
-    pub fn print_info(header: &Self) {
-        println!(
-            "Compression type: {}",
-            get_compression_string(header.compression_type)
-        );
-
-        println!("Uncompressed size: {}", header.uncompressed_size);
-    }
-}
-
-impl V1HeaderV {
-    pub fn parse(data: &Vec<u8>) -> Self {
-        Self {
-            header_j: V1HeaderJ::parse(data),
-            secure_id: read_u32(data, 128),
-            vendor_id: read_u32(data, 132),
-            capabilities: [read_u32(data, 136), read_u32(data, 140)],
-            exception_descriptor: read_u32(data, 144),
-            spare2: read_u32(data, 148),
-            export_desc_size: read_u16(data, 152),
-            export_desc_type: data[154],
-            export_desc: vec![data[155]],
-        }
-    }
-}
 impl V2Header {
     pub fn parse(data: &Vec<u8>) -> Self {
         Self {
@@ -342,8 +283,7 @@ impl V2Header {
         }
     }
 
-    pub fn print_info(header: &Self, flags: u32) {
-        let flags_parsed = HeaderFlags::parse(flags);
+    pub fn print_info(header: &Self, flags_parsed: &HeaderFlags) {
         println!(
             "Type: {} {}",
             match flags_parsed.executable_type {
