@@ -2,6 +2,13 @@
 
 use crate::utils::{read_u16, read_u32};
 
+pub struct HeaderOptions {
+    pub is_unicode: bool,
+    pub is_distributable: bool,
+    pub no_compress: bool,
+    pub shutdown_apps: bool,
+}
+
 #[allow(dead_code)]
 pub struct SISHeader {
     pub uid1: u32,
@@ -27,15 +34,21 @@ pub struct SISHeader {
     pub requisites_offset: u32,
     pub certificates_offset: u32,
     pub name_offset: u32,
-}
-
-#[allow(dead_code)]
-pub struct SISHeader6 {
-    header: SISHeader,
     pub signature_offset: u32,
     pub capabilities_offset: u32,
     pub installed_space: u32,
     pub max_installed_space: u32,
+}
+
+impl HeaderOptions {
+    pub fn parse(options: u16) -> Self {
+        Self {
+            is_unicode: (options & 1) == 1,
+            is_distributable: (options & 2) == 1,
+            no_compress: (options & 8) == 1,
+            shutdown_apps: (options & 16) == 1,
+        }
+    }
 }
 
 impl SISHeader {
@@ -64,18 +77,27 @@ impl SISHeader {
             requisites_offset: read_u32(data, 56),
             certificates_offset: read_u32(data, 60),
             name_offset: read_u32(data, 64),
+            signature_offset: read_u32(data, 68),
+            capabilities_offset: read_u32(data, 72),
+            installed_space: read_u32(data, 76),
+            max_installed_space: read_u32(data, 80),
         }
     }
 
-    pub fn print_info(header: &Self) {
+    pub fn print_info(header: &Self, options_parsed: &HeaderOptions) {
         println!(
-            "Installer version: {}",
+            "Installer version: {} ({:#X})",
             match header.installer_ver {
-                68 | 100 => "EPOC 3-5",
-                200 => "EPOC 6",
+                200 => "Symbian 6",
                 _ => "unknown",
-            }
+            },
+            header.installer_ver
         );
+
+        println!("IsUnicode: {}", options_parsed.is_unicode);
+        println!("IsDistributable: {}", options_parsed.is_distributable);
+        println!("NoCompress: {}", options_parsed.no_compress);
+        println!("ShutdownApps: {}", options_parsed.shutdown_apps);
 
         println!("Languages count: {}", header.langs_count);
         println!("Files count: {}", header.files_count);
@@ -85,27 +107,16 @@ impl SISHeader {
             "Type: {}",
             match header.sis_type {
                 0 => "SISAPP",
-                1 => "SISSYSTEM (EPOC 6)",
-                2 => "SISOPTION (EPOC 6)",
-                3 => "SISCONFIG (EPOC 6)",
-                4 => "SISPATCH (EPOC 6)",
-                5 => "SISUPGRADE (EPOC 6)",
+                1 => "SISSYSTEM",
+                2 => "SISOPTION",
+                3 => "SISCONFIG",
+                4 => "SISPATCH",
+                5 => "SISUPGRADE",
                 _ => "unknown",
             }
         );
 
         println!("App version: {}.{}", header.major_ver, header.minor_ver);
-    }
-}
-
-impl SISHeader6 {
-    pub fn parse(data: &Vec<u8>) -> Self {
-        Self {
-            header: SISHeader::parse(data),
-            signature_offset: read_u32(data, 68),
-            capabilities_offset: read_u32(data, 72),
-            installed_space: read_u32(data, 76),
-            max_installed_space: read_u32(data, 80),
-        }
+        println!("Max installed space: {}", header.max_installed_space);
     }
 }

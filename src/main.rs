@@ -8,7 +8,7 @@ use std::fs::read;
 
 use crate::cpu::unicorn;
 use crate::e32image::header::{HeaderFlags, V1Header, V2Header, V2HeaderJ, V2HeaderV};
-use crate::sis::header::{SISHeader, SISHeader6};
+use crate::sis::header::{HeaderOptions, SISHeader};
 use crate::utils::read_u32;
 
 fn main() {
@@ -17,15 +17,14 @@ fn main() {
 
     if file.ends_with(".sis") || file.ends_with(".sisx") {
         let header = SISHeader::parse(&data);
-        let header6 = SISHeader6::parse(&data);
+        let options_parsed = HeaderOptions::parse(header.options);
 
-        SISHeader::print_info(&header);
+        SISHeader::print_info(&header, &options_parsed);
     } else {
         if [0x1000, 0x2000, 0x4000].contains(&read_u32(&data, 20)) {
             println!("v1 image header detected");
             let header = V1Header::parse(&data);
-            let flags = read_u32(&data, 44);
-            let flags_parsed = HeaderFlags::parse(flags);
+            let flags_parsed = HeaderFlags::parse(header.flags);
 
             V1Header::print_info(&header, &flags_parsed);
         } else {
@@ -33,8 +32,7 @@ fn main() {
             let header = V2Header::parse(&data);
             let header_j = V2HeaderJ::parse(&data);
             let header_v = V2HeaderV::parse(&data);
-            let flags = read_u32(&data, 44);
-            let flags_parsed = HeaderFlags::parse(flags);
+            let flags_parsed = HeaderFlags::parse(header.flags);
 
             V2Header::print_info(&header, &flags_parsed);
 

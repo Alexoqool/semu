@@ -38,8 +38,8 @@ pub struct V1Header {
     pub uid_checksum: u32,
     pub signature: u32,
     pub cpu: u32,
-    pub code_checksum: u16,
-    pub data_checksun: u16,
+    pub code_checksum: u32,
+    pub data_checksum: u32,
     pub tools_major_ver: u8,
     pub tools_minor_ver: u8,
     pub tools_build: u16,
@@ -129,10 +129,10 @@ impl HeaderFlags {
     pub fn parse(flags: u32) -> Self {
         Self {
             executable_type: (flags & 1) == 0,
-            call_entry_point: ((flags >> 1) & 1) == 0,
-            fixed_address: ((flags >> 2) & 1) == 0,
-            abi: ((flags >> 3) & 3) == 0,
-            entry_point_type: ((flags >> 5) & 7) == 0,
+            call_entry_point: (flags & 2) == 0,
+            fixed_address: (flags & 4) == 1,
+            abi: (flags & 8) == 0,
+            entry_point_type: (flags & 32) == 0,
             header_format: (flags >> 24) & 0xF,
             import_format: (flags >> 28) & 0xF,
         }
@@ -148,33 +148,33 @@ impl V1Header {
             uid_checksum: read_u32(data, 12),
             signature: read_u32(data, 16),
             cpu: read_u32(data, 20),
-            code_checksum: read_u16(data, 24),
-            data_checksun: read_u16(data, 26),
-            tools_major_ver: data[28],
-            tools_minor_ver: data[29],
-            tools_build: read_u16(data, 30),
-            time_lo: read_u32(data, 32),
-            time_hi: read_u32(data, 36),
-            flags: read_u32(data, 40),
-            code_size: read_u32(data, 44),
-            data_size: read_u32(data, 48),
-            heap_size_min: read_u32(data, 52),
-            heap_size_max: read_u32(data, 56),
-            stack_size: read_u32(data, 60),
-            bss_size: read_u32(data, 64),
-            entry_point: read_u32(data, 68),
-            code_base: read_u32(data, 72),
-            data_base: read_u32(data, 76),
-            dll_ref_table_count: read_u32(data, 80),
-            export_dir_offset: read_u32(data, 84),
-            export_dir_count: read_u32(data, 88),
-            text_size: read_u32(data, 92),
-            code_offset: read_u32(data, 96),
-            data_offset: read_u32(data, 100),
-            import_offset: read_u32(data, 104),
-            code_reloc_offset: read_u32(data, 108),
-            data_reloc_offset: read_u32(data, 112),
-            priority: read_u16(data, 116),
+            code_checksum: read_u32(data, 24),
+            data_checksum: read_u32(data, 28),
+            tools_major_ver: data[32],
+            tools_minor_ver: data[33],
+            tools_build: read_u16(data, 34),
+            time_lo: read_u32(data, 36),
+            time_hi: read_u32(data, 40),
+            flags: read_u32(data, 44),
+            code_size: read_u32(data, 48),
+            data_size: read_u32(data, 52),
+            heap_size_min: read_u32(data, 56),
+            heap_size_max: read_u32(data, 60),
+            stack_size: read_u32(data, 64),
+            bss_size: read_u32(data, 68),
+            entry_point: read_u32(data, 72),
+            code_base: read_u32(data, 76),
+            data_base: read_u32(data, 80),
+            dll_ref_table_count: read_u32(data, 84),
+            export_dir_offset: read_u32(data, 88),
+            export_dir_count: read_u32(data, 92),
+            text_size: read_u32(data, 96),
+            code_offset: read_u32(data, 100),
+            data_offset: read_u32(data, 104),
+            import_offset: read_u32(data, 108),
+            code_reloc_offset: read_u32(data, 112),
+            data_reloc_offset: read_u32(data, 116),
+            priority: read_u16(data, 120),
         }
     }
 
@@ -183,32 +183,19 @@ impl V1Header {
             "Type: {} {}",
             match flags_parsed.executable_type {
                 true => "EXE",
-                false => "DLL",
+                _ => "DLL",
             },
             get_cpu_string(header.cpu.try_into().unwrap())
         );
 
-        println!(
-            "Call entry point: {}",
-            match flags_parsed.call_entry_point {
-                true => "yes",
-                false => "no",
-            }
-        );
-
-        println!(
-            "Fixed address: {}",
-            match flags_parsed.fixed_address {
-                true => "no",
-                false => "yes",
-            }
-        );
+        println!("Call entry point: {}", flags_parsed.call_entry_point);
+        println!("Fixed address: {}", flags_parsed.fixed_address);
 
         println!(
             "ABI: {}",
             match flags_parsed.abi {
                 true => "GCC98r2",
-                false => "EABI",
+                _ => "EABI",
             }
         );
 
@@ -216,7 +203,7 @@ impl V1Header {
             "Entry point type: {}",
             match flags_parsed.entry_point_type {
                 true => "EKA1",
-                false => "EKA2",
+                _ => "EKA2",
             }
         );
 
@@ -288,39 +275,19 @@ impl V2Header {
             "Type: {} {}",
             match flags_parsed.executable_type {
                 true => "EXE",
-                false => "DLL",
+                _ => "DLL",
             },
-            match header.cpu {
-                0x1000 => "X86",
-                0x2000 => "ARMv4",
-                0x2001 => "ARMv5",
-                0x2002 => "ARMv6",
-                0x4000 => "MCore",
-                _ => "unknown",
-            }
+            get_cpu_string(header.cpu)
         );
 
-        println!(
-            "Call entry point: {}",
-            match flags_parsed.call_entry_point {
-                true => "yes",
-                false => "no",
-            }
-        );
-
-        println!(
-            "Fixed address: {}",
-            match flags_parsed.fixed_address {
-                true => "no",
-                false => "yes",
-            }
-        );
+        println!("Call entry point: {}", flags_parsed.call_entry_point);
+        println!("Fixed address: {}", flags_parsed.fixed_address);
 
         println!(
             "ABI: {}",
             match flags_parsed.abi {
                 true => "GCC98r2",
-                false => "EABI",
+                _ => "EABI",
             }
         );
 
@@ -328,7 +295,7 @@ impl V2Header {
             "Entry point type: {}",
             match flags_parsed.entry_point_type {
                 true => "EKA1",
-                false => "EKA2",
+                _ => "EKA2",
             }
         );
 
