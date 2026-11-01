@@ -1,6 +1,28 @@
+// https://www.thouky.co.uk/software/psifs/sis.html
 // TODO: support for Symbian 9.1+ SIS format
 
+use super::common::get_name_string;
+use super::image::SISImage;
 use crate::utils::{read_u16, read_u32};
+
+fn get_installer_ver_string(image: &SISImage) -> String {
+    match image.header.installer_ver {
+        200 => String::from("Symbian 6"),
+        _ => String::from("unknown"),
+    }
+}
+
+fn get_sis_type_string(image: &SISImage) -> String {
+    match image.header.sis_type {
+        0 => String::from("SISAPP"),
+        1 => String::from("SISSYSTEM"),
+        2 => String::from("SISOPTION"),
+        3 => String::from("SISCONFIG"),
+        4 => String::from("SISPATCH"),
+        5 => String::from("SISUPGRADE"),
+        _ => String::from("unknown"),
+    }
+}
 
 pub struct HeaderOptions {
     pub is_unicode: bool,
@@ -18,26 +40,26 @@ pub struct SISHeader {
     pub data_checksum: u16,
     pub langs_count: u16,
     pub files_count: u16,
-    pub requisites_count: u16,
-    pub install_lang: u16,
-    pub install_files: u16,
-    pub install_drive: u16,
-    pub capabilities_count: u16,
+    pub reqs_count: u16,
+    pub inst_lang: u16,
+    pub inst_files: u16,
+    pub inst_drive: u16,
+    pub caps_count: u16,
     pub installer_ver: u32,
     pub options: u16,
     pub sis_type: u16,
     pub major_ver: u16,
     pub minor_ver: u16,
     pub variant: u32,
-    pub langs_offset: u32,
-    pub files_offset: u32,
-    pub requisites_offset: u32,
-    pub certificates_offset: u32,
-    pub name_offset: u32,
-    pub signature_offset: u32,
-    pub capabilities_offset: u32,
-    pub installed_space: u32,
-    pub max_installed_space: u32,
+    pub langs_ptr: u32,
+    pub files_ptr: u32,
+    pub reqs_ptr: u32,
+    pub certs_ptr: u32,
+    pub name_ptr: u32,
+    pub sig_ptr: u32,
+    pub caps_ptr: u32,
+    pub inst_space: u32,
+    pub max_inst_space: u32,
 }
 
 impl HeaderOptions {
@@ -61,62 +83,58 @@ impl SISHeader {
             data_checksum: read_u16(data, 16),
             langs_count: read_u16(data, 18),
             files_count: read_u16(data, 20),
-            requisites_count: read_u16(data, 22),
-            install_lang: read_u16(data, 24),
-            install_files: read_u16(data, 26),
-            install_drive: read_u16(data, 28),
-            capabilities_count: read_u16(data, 30),
+            reqs_count: read_u16(data, 22),
+            inst_lang: read_u16(data, 24),
+            inst_files: read_u16(data, 26),
+            inst_drive: read_u16(data, 28),
+            caps_count: read_u16(data, 30),
             installer_ver: read_u32(data, 32),
             options: read_u16(data, 36),
             sis_type: read_u16(data, 38),
             major_ver: read_u16(data, 40),
             minor_ver: read_u16(data, 42),
             variant: read_u32(data, 44),
-            langs_offset: read_u32(data, 48),
-            files_offset: read_u32(data, 52),
-            requisites_offset: read_u32(data, 56),
-            certificates_offset: read_u32(data, 60),
-            name_offset: read_u32(data, 64),
-            signature_offset: read_u32(data, 68),
-            capabilities_offset: read_u32(data, 72),
-            installed_space: read_u32(data, 76),
-            max_installed_space: read_u32(data, 80),
+            langs_ptr: read_u32(data, 48),
+            files_ptr: read_u32(data, 52),
+            reqs_ptr: read_u32(data, 56),
+            certs_ptr: read_u32(data, 60),
+            name_ptr: read_u32(data, 64),
+            sig_ptr: read_u32(data, 68),
+            caps_ptr: read_u32(data, 72),
+            inst_space: read_u32(data, 76),
+            max_inst_space: read_u32(data, 80),
         }
     }
 
-    pub fn print_info(header: &Self, options_parsed: &HeaderOptions) {
+    pub fn print_info(image: &SISImage) {
+        let name = get_name_string(image);
+        let installer_ver = get_installer_ver_string(image);
+
+        println!(
+            "Component: {} ({}.{})",
+            name, image.header.major_ver, image.header.minor_ver
+        );
+
         println!(
             "Installer version: {} ({:#X})",
-            match header.installer_ver {
-                200 => "Symbian 6",
-                _ => "unknown",
-            },
-            header.installer_ver
+            installer_ver, image.header.installer_ver
         );
 
-        println!("IsUnicode: {}", options_parsed.is_unicode);
-        println!("IsDistributable: {}", options_parsed.is_distributable);
-        println!("NoCompress: {}", options_parsed.no_compress);
-        println!("ShutdownApps: {}", options_parsed.shutdown_apps);
+        println!("IsUnicode: {}", image.options.is_unicode);
+        println!("IsDistributable: {}", image.options.is_distributable);
+        println!("NoCompress: {}", image.options.no_compress);
+        println!("ShutdownApps: {}", image.options.shutdown_apps);
 
-        println!("Languages count: {}", header.langs_count);
-        println!("Files count: {}", header.files_count);
-        println!("Capabilities count: {}", header.capabilities_count);
-
-        println!(
-            "Type: {}",
-            match header.sis_type {
-                0 => "SISAPP",
-                1 => "SISSYSTEM",
-                2 => "SISOPTION",
-                3 => "SISCONFIG",
-                4 => "SISPATCH",
-                5 => "SISUPGRADE",
-                _ => "unknown",
-            }
-        );
-
-        println!("App version: {}.{}", header.major_ver, header.minor_ver);
-        println!("Max installed space: {}", header.max_installed_space);
+        println!("Languages count: {}", image.header.langs_count);
+        println!("Files count: {}", image.header.files_count);
+        println!("Capabilities count: {}", image.header.caps_count);
+        println!("Type: {}", get_sis_type_string(image));
+        println!("Languages pointer: {}", image.header.langs_ptr);
+        println!("Files pointer: {}", image.header.files_ptr);
+        println!("Requisites pointer: {}", image.header.reqs_ptr);
+        println!("Certificates pointer: {}", image.header.certs_ptr);
+        println!("Component name pointer: {}", image.header.name_ptr);
+        println!("Signature pointer: {}", image.header.sig_ptr);
+        println!("Capabilities pointer: {}", image.header.caps_ptr);
     }
 }

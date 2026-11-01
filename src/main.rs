@@ -8,18 +8,23 @@ use std::fs::read;
 
 use crate::cpu::unicorn;
 use crate::e32image::header::{HeaderFlags, V1Header, V2Header, V2HeaderJ, V2HeaderV};
-use crate::sis::header::{HeaderOptions, SISHeader};
+use crate::sis::header::SISHeader;
+use crate::sis::image::SISImage;
 use crate::utils::read_u32;
 
 fn main() {
-    let file = args().nth(1).unwrap();
+    let args: Vec<String> = args().collect();
+    let file = &args[1];
     let data = read(&file).unwrap();
 
     if file.ends_with(".sis") || file.ends_with(".sisx") {
-        let header = SISHeader::parse(&data);
-        let options_parsed = HeaderOptions::parse(header.options);
+        let image = SISImage::parse(&data);
 
-        SISHeader::print_info(&header, &options_parsed);
+        SISHeader::print_info(&image);
+
+        if args.contains(&String::from("--extract")) {
+            SISImage::extract_files(&image);
+        }
     } else {
         if [0x1000, 0x2000, 0x4000].contains(&read_u32(&data, 20)) {
             println!("v1 image header detected");
