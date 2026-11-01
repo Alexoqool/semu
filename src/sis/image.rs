@@ -188,15 +188,6 @@ impl SISImage {
                     .unwrap()
                     .replace("\0", "");
 
-                let file_data_inflated = if image.options.no_compress {
-                    file_data
-                } else {
-                    match decompress_to_vec_zlib(&file_data) {
-                        Ok(v) => v,
-                        Err(e) => panic!("Failed to inflate data: {e}"),
-                    }
-                };
-
                 println!(
                     "\nFile {f} record type: {}",
                     get_rec_type_string(records[f].rec_type)
@@ -216,7 +207,19 @@ impl SISImage {
                 println!("File {f} pointer: {}", records[f].file_ptrs[l]);
                 println!("File {f} original length: {}", records[f].orig_file_lens[l]);
 
-                write(format!("{name}/{file_name}"), file_data_inflated).expect("Failed to write");
+                if records[f].file_type != 1 {
+                    let file_data_inflated = if image.options.no_compress {
+                        file_data
+                    } else {
+                        match decompress_to_vec_zlib(&file_data) {
+                            Ok(v) => v,
+                            Err(e) => panic!("Failed to inflate data: {e}"),
+                        }
+                    };
+
+                    write(format!("{name}/{file_name}"), file_data_inflated)
+                        .expect("Failed to write");
+                }
             }
         }
     }

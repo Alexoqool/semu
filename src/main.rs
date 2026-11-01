@@ -17,7 +17,7 @@ fn main() {
     let file = &args[1];
     let data = read(&file).unwrap();
 
-    if file.ends_with(".sis") || file.ends_with(".sisx") {
+    if file.to_uppercase().ends_with(".SIS") || file.to_uppercase().ends_with(".SISX") {
         let image = SISImage::parse(&data);
 
         SISHeader::print_info(&image);
