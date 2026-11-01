@@ -207,7 +207,7 @@ impl SISImage {
                 println!("File {f} pointer: {}", records[f].file_ptrs[l]);
                 println!("File {f} original length: {}", records[f].orig_file_lens[l]);
 
-                if records[f].file_type != 1 {
+                if records[f].file_type == 0 {
                     let file_data_inflated = if image.options.no_compress {
                         file_data
                     } else {
