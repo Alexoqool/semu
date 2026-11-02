@@ -7,6 +7,109 @@ use miniz_oxide::inflate::decompress_to_vec_zlib;
 use std::fs::{create_dir, write};
 use std::str::from_utf8;
 
+fn get_language_string(data: u16) -> String {
+    match data {
+        0 => String::from("Test"),
+        1 => String::from("UK English"),
+        2 => String::from("French"),
+        3 => String::from("German"),
+        4 => String::from("Spanish"),
+        5 => String::from("Italian"),
+        6 => String::from("Swedish"),
+        7 => String::from("Danish"),
+        8 => String::from("Norwegian"),
+        9 => String::from("Finnish"),
+        10 => String::from("American English"),
+        11 => String::from("Swiss French"),
+        12 => String::from("Swiss German"),
+        13 => String::from("Portuguese"),
+        14 => String::from("Turkish"),
+        15 => String::from("Icelandic"),
+        16 => String::from("Russian"),
+        17 => String::from("Hungarian"),
+        18 => String::from("Dutch"),
+        19 => String::from("Belgian Flemish"),
+        20 => String::from("Australian English"),
+        21 => String::from("Belgian French"),
+        22 => String::from("Austrian German"),
+        23 => String::from("New Zealand English"),
+        24 => String::from("Internetional French"),
+        25 => String::from("Czech"),
+        26 => String::from("Slovak"),
+        27 => String::from("Polish"),
+        28 => String::from("Slovenian"),
+        29 => String::from("Taiwan Chinese"),
+        30 => String::from("Hong Kong Chinese"),
+        31 => String::from("PRC Chinese"),
+        32 => String::from("Japanese"),
+        33 => String::from("Thai"),
+        34 => String::from("Afrikaans"),
+        35 => String::from("Albanian"),
+        36 => String::from("Amharic"),
+        37 => String::from("Arabic"),
+        38 => String::from("Armenian"),
+        39 => String::from("Tagalog"),
+        40 => String::from("Belarussian"),
+        41 => String::from("Bengali"),
+        42 => String::from("Bulgarian"),
+        43 => String::from("Burmese"),
+        44 => String::from("Catalan"),
+        45 => String::from("Croatian"),
+        46 => String::from("Canadian English"),
+        47 => String::from("International English"),
+        48 => String::from("South African English"),
+        49 => String::from("Estonian"),
+        50 => String::from("Farsi"),
+        51 => String::from("Canadian French"),
+        52 => String::from("Scots Gaelic"),
+        53 => String::from("Georgian"),
+        54 => String::from("Greek"),
+        55 => String::from("Cyprus Greek"),
+        56 => String::from("Gujarati"),
+        57 => String::from("Hebrew"),
+        58 => String::from("Hindi"),
+        59 => String::from("Indonesian"),
+        60 => String::from("Irish"),
+        61 => String::from("Swiss Italian"),
+        62 => String::from("Kannada"),
+        63 => String::from("Kazakh"),
+        64 => String::from("Khmer"),
+        65 => String::from("Korean"),
+        66 => String::from("Laothian"),
+        67 => String::from("Latvian"),
+        68 => String::from("Lithuanian"),
+        69 => String::from("Macedonian"),
+        70 => String::from("Malay"),
+        71 => String::from("Malayalam"),
+        72 => String::from("Marathi"),
+        73 => String::from("Moldavian"),
+        74 => String::from("Mongolian"),
+        75 => String::from("Norwegian-Nynorsk"),
+        76 => String::from("Brazilian Portuguese"),
+        77 => String::from("Punjabi"),
+        78 => String::from("Romanian"),
+        79 => String::from("Serbian"),
+        80 => String::from("Sinhalese"),
+        81 => String::from("Somali"),
+        82 => String::from("International Spanish"),
+        83 => String::from("Latin American Spanish"),
+        84 => String::from("Swahili"),
+        85 => String::from("Finland Swedish"),
+        87 => String::from("Tamil"),
+        88 => String::from("Telugu"),
+        89 => String::from("Tibetan"),
+        90 => String::from("Tigrinya"),
+        91 => String::from("Cyprus Turkish"),
+        92 => String::from("Turkmen"),
+        93 => String::from("Ukrainian"),
+        94 => String::from("Urdu"),
+        95 => String::from("Vietnamese"),
+        96 => String::from("Welsh"),
+        97 => String::from("Zulu"),
+        _ => String::from("unknown"),
+    }
+}
+
 fn get_rec_type_string(data: u32) -> String {
     match data {
         0 => String::from("Simple file line"),
@@ -112,7 +215,7 @@ impl NameRecord {
 
 impl SMFileRecord {
     pub fn parse(image: &SISImage, record: &Vec<u8>) -> Self {
-        let lcount = image.header.langs_count as usize;
+        let langs_count = image.header.langs_count as usize;
         let rec_type = read_u32(record, 0);
         let mut file_lens: Vec<u32> = vec![];
         let mut file_ptrs: Vec<u32> = vec![];
@@ -120,7 +223,7 @@ impl SMFileRecord {
 
         match rec_type {
             0 | 1 => {
-                for n in 0..lcount {
+                for n in 0..langs_count {
                     let file_len = read_u32(record, 28 + 28 * n);
                     let file_ptr = read_u32(record, 32 + 32 * n);
                     let orig_file_len = read_u32(record, 36 + 36 * n);
@@ -143,8 +246,8 @@ impl SMFileRecord {
             file_lens: file_lens,
             file_ptrs: file_ptrs,
             orig_file_lens: orig_file_lens,
-            mime_type_len: read_u32(record, 40 + 40 * (lcount - 1)),
-            mime_type_ptr: read_u32(record, 44 - 40 * (lcount - 1)),
+            mime_type_len: read_u32(record, 40 + 40 * (langs_count - 1)),
+            mime_type_ptr: read_u32(record, 44 - 40 * (langs_count - 1)),
         }
     }
 }
@@ -160,21 +263,28 @@ impl SISImage {
 
     pub fn extract_files(image: &Self) {
         let name = get_name_string(image);
+        let langs_rec_start = image.header.langs_ptr as usize;
         let files_rec_start = image.header.files_ptr as usize;
         let files_count = image.header.files_count as usize;
         let langs_count = image.header.langs_count as usize;
+        let mut langs: Vec<String> = vec![];
         let mut records: Vec<SMFileRecord> = vec![];
 
         create_dir(&name).expect("Failed to create dir");
+        for l in 0..langs_count {
+            let record_start = langs_rec_start + 2 * l;
+            let lang_data = read_u16(&image.bin_data, record_start);
+            let lang = get_language_string(lang_data);
+            langs.push(lang);
+            create_dir(format!("{name}/{}", langs[l])).expect("Failed to create dir");
 
-        for f in 0..files_count {
-            let record_start = files_rec_start + 48 * f;
-            let record_end = record_start + 48;
-            let record_data = image.bin_data[record_start..record_end].to_vec();
-            let record = SMFileRecord::parse(&image, &record_data);
-            records.push(record);
+            for f in 0..files_count {
+                let record_start = files_rec_start + 48 * f;
+                let record_end = record_start + 48;
+                let record_data = image.bin_data[record_start..record_end].to_vec();
+                let record = SMFileRecord::parse(&image, &record_data);
+                records.push(record);
 
-            for l in 0..langs_count {
                 let dest_start = records[f].dest_ptr as usize;
                 let dest_end = dest_start + records[f].dest_len as usize;
                 let dest_data = image.bin_data[dest_start..dest_end].to_vec();
@@ -188,8 +298,10 @@ impl SISImage {
                     .unwrap()
                     .replace("\0", "");
 
+                println!("\nFile {f} language: {}", langs[l]);
+
                 println!(
-                    "\nFile {f} record type: {}",
+                    "File {f} record type: {}",
                     get_rec_type_string(records[f].rec_type)
                 );
 
@@ -217,8 +329,11 @@ impl SISImage {
                         }
                     };
 
-                    write(format!("{name}/{file_name}"), file_data_inflated)
-                        .expect("Failed to write");
+                    write(
+                        format!("{name}/{}/{file_name}", langs[l]),
+                        file_data_inflated,
+                    )
+                    .expect("Failed to write file");
                 }
             }
         }
