@@ -8,157 +8,158 @@ use std::fs::{create_dir, write};
 use std::str::from_utf8;
 
 fn get_language_string(data: u16) -> String {
-    match data {
-        0 => String::from("Test"),
-        1 => String::from("UK English"),
-        2 => String::from("French"),
-        3 => String::from("German"),
-        4 => String::from("Spanish"),
-        5 => String::from("Italian"),
-        6 => String::from("Swedish"),
-        7 => String::from("Danish"),
-        8 => String::from("Norwegian"),
-        9 => String::from("Finnish"),
-        10 => String::from("American English"),
-        11 => String::from("Swiss French"),
-        12 => String::from("Swiss German"),
-        13 => String::from("Portuguese"),
-        14 => String::from("Turkish"),
-        15 => String::from("Icelandic"),
-        16 => String::from("Russian"),
-        17 => String::from("Hungarian"),
-        18 => String::from("Dutch"),
-        19 => String::from("Belgian Flemish"),
-        20 => String::from("Australian English"),
-        21 => String::from("Belgian French"),
-        22 => String::from("Austrian German"),
-        23 => String::from("New Zealand English"),
-        24 => String::from("Internetional French"),
-        25 => String::from("Czech"),
-        26 => String::from("Slovak"),
-        27 => String::from("Polish"),
-        28 => String::from("Slovenian"),
-        29 => String::from("Taiwan Chinese"),
-        30 => String::from("Hong Kong Chinese"),
-        31 => String::from("PRC Chinese"),
-        32 => String::from("Japanese"),
-        33 => String::from("Thai"),
-        34 => String::from("Afrikaans"),
-        35 => String::from("Albanian"),
-        36 => String::from("Amharic"),
-        37 => String::from("Arabic"),
-        38 => String::from("Armenian"),
-        39 => String::from("Tagalog"),
-        40 => String::from("Belarussian"),
-        41 => String::from("Bengali"),
-        42 => String::from("Bulgarian"),
-        43 => String::from("Burmese"),
-        44 => String::from("Catalan"),
-        45 => String::from("Croatian"),
-        46 => String::from("Canadian English"),
-        47 => String::from("International English"),
-        48 => String::from("South African English"),
-        49 => String::from("Estonian"),
-        50 => String::from("Farsi"),
-        51 => String::from("Canadian French"),
-        52 => String::from("Scots Gaelic"),
-        53 => String::from("Georgian"),
-        54 => String::from("Greek"),
-        55 => String::from("Cyprus Greek"),
-        56 => String::from("Gujarati"),
-        57 => String::from("Hebrew"),
-        58 => String::from("Hindi"),
-        59 => String::from("Indonesian"),
-        60 => String::from("Irish"),
-        61 => String::from("Swiss Italian"),
-        62 => String::from("Kannada"),
-        63 => String::from("Kazakh"),
-        64 => String::from("Khmer"),
-        65 => String::from("Korean"),
-        66 => String::from("Laothian"),
-        67 => String::from("Latvian"),
-        68 => String::from("Lithuanian"),
-        69 => String::from("Macedonian"),
-        70 => String::from("Malay"),
-        71 => String::from("Malayalam"),
-        72 => String::from("Marathi"),
-        73 => String::from("Moldavian"),
-        74 => String::from("Mongolian"),
-        75 => String::from("Norwegian-Nynorsk"),
-        76 => String::from("Brazilian Portuguese"),
-        77 => String::from("Punjabi"),
-        78 => String::from("Romanian"),
-        79 => String::from("Serbian"),
-        80 => String::from("Sinhalese"),
-        81 => String::from("Somali"),
-        82 => String::from("International Spanish"),
-        83 => String::from("Latin American Spanish"),
-        84 => String::from("Swahili"),
-        85 => String::from("Finland Swedish"),
-        87 => String::from("Tamil"),
-        88 => String::from("Telugu"),
-        89 => String::from("Tibetan"),
-        90 => String::from("Tigrinya"),
-        91 => String::from("Cyprus Turkish"),
-        92 => String::from("Turkmen"),
-        93 => String::from("Ukrainian"),
-        94 => String::from("Urdu"),
-        95 => String::from("Vietnamese"),
-        96 => String::from("Welsh"),
-        97 => String::from("Zulu"),
-        _ => String::from("unknown"),
-    }
+    String::from(match data {
+        0 => "Test",
+        1 => "UK English",
+        2 => "French",
+        3 => "German",
+        4 => "Spanish",
+        5 => "Italian",
+        6 => "Swedish",
+        7 => "Danish",
+        8 => "Norwegian",
+        9 => "Finnish",
+        10 => "American English",
+        11 => "Swiss French",
+        12 => "Swiss German",
+        13 => "Portuguese",
+        14 => "Turkish",
+        15 => "Icelandic",
+        16 => "Russian",
+        17 => "Hungarian",
+        18 => "Dutch",
+        19 => "Belgian Flemish",
+        20 => "Australian English",
+        21 => "Belgian French",
+        22 => "Austrian German",
+        23 => "New Zealand English",
+        24 => "Internetional French",
+        25 => "Czech",
+        26 => "Slovak",
+        27 => "Polish",
+        28 => "Slovenian",
+        29 => "Taiwan Chinese",
+        30 => "Hong Kong Chinese",
+        31 => "PRC Chinese",
+        32 => "Japanese",
+        33 => "Thai",
+        34 => "Afrikaans",
+        35 => "Albanian",
+        36 => "Amharic",
+        37 => "Arabic",
+        38 => "Armenian",
+        39 => "Tagalog",
+        40 => "Belarussian",
+        41 => "Bengali",
+        42 => "Bulgarian",
+        43 => "Burmese",
+        44 => "Catalan",
+        45 => "Croatian",
+        46 => "Canadian English",
+        47 => "International English",
+        48 => "South African English",
+        49 => "Estonian",
+        50 => "Farsi",
+        51 => "Canadian French",
+        52 => "Scots Gaelic",
+        53 => "Georgian",
+        54 => "Greek",
+        55 => "Cyprus Greek",
+        56 => "Gujarati",
+        57 => "Hebrew",
+        58 => "Hindi",
+        59 => "Indonesian",
+        60 => "Irish",
+        61 => "Swiss Italian",
+        62 => "Kannada",
+        63 => "Kazakh",
+        64 => "Khmer",
+        65 => "Korean",
+        66 => "Laothian",
+        67 => "Latvian",
+        68 => "Lithuanian",
+        69 => "Macedonian",
+        70 => "Malay",
+        71 => "Malayalam",
+        72 => "Marathi",
+        73 => "Moldavian",
+        74 => "Mongolian",
+        75 => "Norwegian-Nynorsk",
+        76 => "Brazilian Portuguese",
+        77 => "Punjabi",
+        78 => "Romanian",
+        79 => "Serbian",
+        80 => "Sinhalese",
+        81 => "Somali",
+        82 => "International Spanish",
+        83 => "Latin American Spanish",
+        84 => "Swahili",
+        85 => "Finland Swedish",
+        87 => "Tamil",
+        88 => "Telugu",
+        89 => "Tibetan",
+        90 => "Tigrinya",
+        91 => "Cyprus Turkish",
+        92 => "Turkmen",
+        93 => "Ukrainian",
+        94 => "Urdu",
+        95 => "Vietnamese",
+        96 => "Welsh",
+        97 => "Zulu",
+        _ => "unknown",
+    })
 }
 
 fn get_rec_type_string(data: u32) -> String {
-    match data {
-        0 => String::from("Simple file line"),
-        1 => String::from("Multiple language files line"),
-        2 => String::from("If line"),
-        3 => String::from("ElseIf line"),
-        4 => String::from("Else line"),
-        5 => String::from("EndIf line"),
-        _ => String::from("unknown"),
-    }
+    String::from(match data {
+        0 => "Simple file line",
+        1 => "Multiple language files line",
+        2 => "Options line",
+        3 => "If line",
+        4 => "ElseIf line",
+        5 => "Else line",
+        6 => "EndIf line",
+        _ => "unknown",
+    })
 }
 
 fn get_file_type_string(data: u32) -> String {
-    match data {
-        0 => String::from("FILE"),
-        1 => String::from("FILETEXT"),
-        2 => String::from("SIS component file"),
-        3 => String::from("FILERUN"),
-        4 => String::from("FILENULL"),
-        5 => String::from("FILEMIME"),
-        _ => String::from("unknown"),
-    }
+    String::from(match data {
+        0 => "FILE",
+        1 => "FILETEXT",
+        2 => "SIS component file",
+        3 => "FILERUN",
+        4 => "FILENULL",
+        5 => "FILEMIME",
+        _ => "unknown",
+    })
 }
 
 fn get_file_det_string(data: u32, ft: u32) -> String {
-    match ft {
+    String::from(match ft {
         // FILERUN
         3 => match data {
-            0 => String::from("RUNINSTALL"),
-            1 => String::from("RUNREMOVE"),
-            2 => String::from("RUNBOTH"),
-            0x100 => String::from("RUNSENDED"),
-            0x200 => String::from("RUNWAIT"),
-            _ => String::from("unknown"),
+            0 => "RUNINSTALL",
+            1 => "RUNREMOVE",
+            2 => "RUNBOTH",
+            0x100 => "RUNSENDED",
+            0x200 => "RUNWAIT",
+            _ => "unknown",
         },
         // FILEMIME
         5 => match data {
-            256 => String::from("OPENCLOSE"),
-            512 => String::from("OPENWAIT"),
-            _ => String::from("unknown"),
+            256 => "OPENCLOSE",
+            512 => "OPENWAIT",
+            _ => "unknown",
         },
         _ => match data {
-            0 => String::from("TEXTCONTINUE"),
-            1 => String::from("TEXTSKIP"),
-            2 => String::from("TEXTABORT"),
-            3 => String::from("TEXTEXIT"),
-            _ => String::from("unknown"),
+            0 => "TEXTCONTINUE",
+            1 => "TEXTSKIP",
+            2 => "TEXTABORT",
+            3 => "TEXTEXIT",
+            _ => "unknown",
         },
-    }
+    })
 }
 
 pub struct NameRecord {
@@ -216,27 +217,21 @@ impl NameRecord {
 impl SMFileRecord {
     pub fn parse(image: &SISImage, record: &Vec<u8>) -> Self {
         let langs_count = image.header.langs_count as usize;
-        let rec_type = read_u32(record, 0);
         let mut file_lens: Vec<u32> = vec![];
         let mut file_ptrs: Vec<u32> = vec![];
         let mut orig_file_lens: Vec<u32> = vec![];
 
-        match rec_type {
-            0 | 1 => {
-                for n in 0..langs_count {
-                    let file_len = read_u32(record, 28 + 28 * n);
-                    let file_ptr = read_u32(record, 32 + 32 * n);
-                    let orig_file_len = read_u32(record, 36 + 36 * n);
-                    file_lens.push(file_len);
-                    file_ptrs.push(file_ptr);
-                    orig_file_lens.push(orig_file_len);
-                }
-            }
-            _ => todo!("File record type {rec_type}"),
+        for n in 0..langs_count {
+            let file_len = read_u32(record, 28 + 28 * n);
+            let file_ptr = read_u32(record, 32 + 32 * n);
+            let orig_file_len = read_u32(record, 36 + 36 * n);
+            file_lens.push(file_len);
+            file_ptrs.push(file_ptr);
+            orig_file_lens.push(orig_file_len);
         }
 
         Self {
-            rec_type: rec_type,
+            rec_type: read_u32(record, 0),
             file_type: read_u32(record, 4),
             file_det: read_u32(record, 8),
             src_len: read_u32(record, 12),
@@ -268,7 +263,8 @@ impl SISImage {
         let files_count = image.header.files_count as usize;
         let langs_count = image.header.langs_count as usize;
         let mut langs: Vec<String> = vec![];
-        let mut records: Vec<SMFileRecord> = vec![];
+        let mut file_records: Vec<SMFileRecord> = vec![];
+        let mut prev_rec_len = 0;
 
         create_dir(&name).expect("Failed to create dir");
         for l in 0..langs_count {
@@ -279,18 +275,23 @@ impl SISImage {
             create_dir(format!("{name}/{}", langs[l])).expect("Failed to create dir");
 
             for f in 0..files_count {
-                let record_start = files_rec_start + 48 * f;
-                let record_end = record_start + 48;
-                let record_data = image.bin_data[record_start..record_end].to_vec();
-                let record = SMFileRecord::parse(&image, &record_data);
-                records.push(record);
+                let rec_type = read_u32(&image.bin_data, files_rec_start + prev_rec_len);
 
-                let dest_start = records[f].dest_ptr as usize;
-                let dest_end = dest_start + records[f].dest_len as usize;
+                match rec_type {
+                    0 | 1 => {
+                        prev_rec_len = 48;
+                        let record_start = files_rec_start + 48 * f;
+                        let record_end = record_start + 48;
+                        let record_data = image.bin_data[record_start..record_end].to_vec();
+                        let record = SMFileRecord::parse(&image, &record_data);
+                        file_records.push(record);
+                    }
+                    _ => todo!("Record type {}", get_rec_type_string(rec_type)),
+                }
+
+                let dest_start = file_records[f].dest_ptr as usize;
+                let dest_end = dest_start + file_records[f].dest_len as usize;
                 let dest_data = image.bin_data[dest_start..dest_end].to_vec();
-                let file_start = records[f].file_ptrs[l] as usize;
-                let file_end = file_start + records[f].file_lens[l] as usize;
-                let file_data = image.bin_data[file_start..file_end].to_vec();
                 let file_name = from_utf8(&dest_data)
                     .unwrap()
                     .split("\\")
@@ -302,24 +303,30 @@ impl SISImage {
 
                 println!(
                     "File {f} record type: {}",
-                    get_rec_type_string(records[f].rec_type)
+                    get_rec_type_string(file_records[f].rec_type)
                 );
 
                 println!(
                     "File {f} type: {}",
-                    get_file_type_string(records[f].file_type)
+                    get_file_type_string(file_records[f].file_type)
                 );
 
                 println!(
                     "File {f} details: {}",
-                    get_file_det_string(records[f].file_det, records[f].file_type)
+                    get_file_det_string(file_records[f].file_det, file_records[f].file_type)
                 );
 
-                println!("File {f} length: {}", records[f].file_lens[l]);
-                println!("File {f} pointer: {}", records[f].file_ptrs[l]);
-                println!("File {f} original length: {}", records[f].orig_file_lens[l]);
+                println!("File {f} length: {}", file_records[f].file_lens[l]);
+                println!("File {f} pointer: {}", file_records[f].file_ptrs[l]);
+                println!(
+                    "File {f} original length: {}",
+                    file_records[f].orig_file_lens[l]
+                );
 
-                if records[f].file_type == 0 {
+                if file_records[f].file_type == 0 {
+                    let file_start = file_records[f].file_ptrs[l] as usize;
+                    let file_end = file_start + file_records[f].file_lens[l] as usize;
+                    let file_data = image.bin_data[file_start..file_end].to_vec();
                     let file_data_inflated = if image.options.no_compress {
                         file_data
                     } else {
