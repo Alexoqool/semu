@@ -185,6 +185,18 @@ pub struct SMFileRecord {
 }
 
 #[allow(dead_code)]
+pub struct IEIfRecord {
+    pub rec_type: u32,
+    pub cond_exp_len: u32,
+    pub cond_exp: Vec<u8>,
+}
+
+#[allow(dead_code)]
+pub struct EEIfRecord {
+    pub rec_type: u32,
+}
+
+#[allow(dead_code)]
 pub struct SISImage {
     pub bin_data: Vec<u8>,
     pub header: SISHeader,
@@ -247,6 +259,19 @@ impl SMFileRecord {
     }
 }
 
+impl IEIfRecord {
+    pub fn parse(record: &Vec<u8>) -> Self {
+        let cond_exp_len = read_u32(record, 4);
+        let cond_exp_end = (cond_exp_len + 8) as usize;
+
+        IEIfRecord {
+            rec_type: read_u32(record, 0),
+            cond_exp_len: cond_exp_len,
+            cond_exp: record[8..cond_exp_end].to_vec(),
+        }
+    }
+}
+
 impl SISImage {
     pub fn parse(data: &Vec<u8>) -> Self {
         Self {
@@ -264,7 +289,12 @@ impl SISImage {
         let langs_count = image.header.langs_count as usize;
         let mut langs: Vec<String> = vec![];
         let mut file_records: Vec<SMFileRecord> = vec![];
-        let mut prev_rec_len = 0;
+        let mut ieif_records: Vec<IEIfRecord> = vec![];
+        let mut eeif_records: Vec<EEIfRecord> = vec![];
+        let mut cur_file_rec = 0;
+        let mut cur_ieif_rec = 0;
+        let mut cur_eeif_rec = 0;
+        let mut next_rec_ptr = files_rec_start;
 
         create_dir(&name).expect("Failed to create dir");
         for l in 0..langs_count {
@@ -275,72 +305,131 @@ impl SISImage {
             create_dir(format!("{name}/{}", langs[l])).expect("Failed to create dir");
 
             for f in 0..files_count {
-                let rec_type = read_u32(&image.bin_data, files_rec_start + prev_rec_len);
+                let rec_type = read_u32(&image.bin_data, next_rec_ptr);
 
                 match rec_type {
                     0 | 1 => {
-                        prev_rec_len = 48;
-                        let record_start = files_rec_start + 48 * f;
-                        let record_end = record_start + 48;
-                        let record_data = image.bin_data[record_start..record_end].to_vec();
-                        let record = SMFileRecord::parse(&image, &record_data);
+                        let rec_start = next_rec_ptr;
+                        let rec_end = rec_start + 48 + 12 * l;
+                        let rec_data = image.bin_data[rec_start..rec_end].to_vec();
+                        let record = SMFileRecord::parse(&image, &rec_data);
+
                         file_records.push(record);
+                        next_rec_ptr += 48 + 12 * l;
+
+                        if file_records[cur_file_rec].file_type == 0 {
+                            let dest_start = file_records[cur_file_rec].dest_ptr as usize;
+                            let dest_end =
+                                dest_start + file_records[cur_file_rec].dest_len as usize;
+                            let dest_data = image.bin_data[dest_start..dest_end].to_vec();
+                            let file_name = from_utf8(&dest_data)
+                                .unwrap()
+                                .split("\\")
+                                .last()
+                                .unwrap()
+                                .replace("\0", "");
+
+                            let file_start = file_records[cur_file_rec].file_ptrs[l] as usize;
+                            let file_end =
+                                file_start + file_records[cur_file_rec].file_lens[l] as usize;
+                            let file_data = image.bin_data[file_start..file_end].to_vec();
+                            let file_data_inflated = if image.options.no_compress {
+                                file_data
+                            } else {
+                                match decompress_to_vec_zlib(&file_data) {
+                                    Ok(v) => v,
+                                    Err(e) => panic!("Failed to inflate data: {e}"),
+                                }
+                            };
+
+                            write(
+                                format!("{name}/{}/{file_name}", langs[l]),
+                                file_data_inflated,
+                            )
+                            .expect("Failed to write file");
+                        }
+
+                        println!("\nFile {f} language: {}", langs[l]);
+                        println!(
+                            "File {f} record type: {}",
+                            get_rec_type_string(file_records[cur_file_rec].rec_type)
+                        );
+
+                        println!(
+                            "File {f} type: {}",
+                            get_file_type_string(file_records[cur_file_rec].file_type)
+                        );
+
+                        println!(
+                            "File {f} details: {}",
+                            get_file_det_string(
+                                file_records[cur_file_rec].file_det,
+                                file_records[cur_file_rec].file_type
+                            )
+                        );
+
+                        println!(
+                            "File {f} length: {}",
+                            file_records[cur_file_rec].file_lens[l]
+                        );
+
+                        println!(
+                            "File {f} pointer: {}",
+                            file_records[cur_file_rec].file_ptrs[l]
+                        );
+
+                        println!(
+                            "File {f} original length: {}",
+                            file_records[cur_file_rec].orig_file_lens[l]
+                        );
+
+                        cur_file_rec += 1;
+                    }
+                    3 | 4 => {
+                        let cond_exp_len = read_u32(&image.bin_data, next_rec_ptr + 4) as usize;
+                        let rec_start = next_rec_ptr;
+                        let rec_end = rec_start + cond_exp_len + 8;
+                        let rec_data = image.bin_data[rec_start..rec_end].to_vec();
+                        let record = IEIfRecord::parse(&rec_data);
+
+                        ieif_records.push(record);
+                        next_rec_ptr += 8 + cond_exp_len;
+
+                        println!("\nFile {f} language: {}", langs[l]);
+                        println!(
+                            "File {f} record type: {}",
+                            get_rec_type_string(ieif_records[cur_ieif_rec].rec_type)
+                        );
+
+                        println!(
+                            "File {f} expression size: {}",
+                            ieif_records[cur_ieif_rec].cond_exp_len
+                        );
+
+                        cur_file_rec -= 1;
+                        cur_ieif_rec += 1;
+                    }
+                    5 | 6 => {
+                        let rec_start = next_rec_ptr;
+                        let rec_end = rec_start + 4;
+                        let rec_data = image.bin_data[rec_start..rec_end].to_vec();
+                        let record = EEIfRecord {
+                            rec_type: read_u32(&rec_data, 0),
+                        };
+
+                        eeif_records.push(record);
+                        next_rec_ptr += 4;
+
+                        println!("\nFile {f} language: {}", langs[l]);
+                        println!(
+                            "File {f} record type: {}",
+                            get_rec_type_string(eeif_records[cur_eeif_rec].rec_type)
+                        );
+
+                        cur_file_rec -= 1;
+                        cur_eeif_rec += 1;
                     }
                     _ => todo!("Record type {}", get_rec_type_string(rec_type)),
-                }
-
-                let dest_start = file_records[f].dest_ptr as usize;
-                let dest_end = dest_start + file_records[f].dest_len as usize;
-                let dest_data = image.bin_data[dest_start..dest_end].to_vec();
-                let file_name = from_utf8(&dest_data)
-                    .unwrap()
-                    .split("\\")
-                    .last()
-                    .unwrap()
-                    .replace("\0", "");
-
-                println!("\nFile {f} language: {}", langs[l]);
-
-                println!(
-                    "File {f} record type: {}",
-                    get_rec_type_string(file_records[f].rec_type)
-                );
-
-                println!(
-                    "File {f} type: {}",
-                    get_file_type_string(file_records[f].file_type)
-                );
-
-                println!(
-                    "File {f} details: {}",
-                    get_file_det_string(file_records[f].file_det, file_records[f].file_type)
-                );
-
-                println!("File {f} length: {}", file_records[f].file_lens[l]);
-                println!("File {f} pointer: {}", file_records[f].file_ptrs[l]);
-                println!(
-                    "File {f} original length: {}",
-                    file_records[f].orig_file_lens[l]
-                );
-
-                if file_records[f].file_type == 0 {
-                    let file_start = file_records[f].file_ptrs[l] as usize;
-                    let file_end = file_start + file_records[f].file_lens[l] as usize;
-                    let file_data = image.bin_data[file_start..file_end].to_vec();
-                    let file_data_inflated = if image.options.no_compress {
-                        file_data
-                    } else {
-                        match decompress_to_vec_zlib(&file_data) {
-                            Ok(v) => v,
-                            Err(e) => panic!("Failed to inflate data: {e}"),
-                        }
-                    };
-
-                    write(
-                        format!("{name}/{}/{file_name}", langs[l]),
-                        file_data_inflated,
-                    )
-                    .expect("Failed to write file");
                 }
             }
         }
