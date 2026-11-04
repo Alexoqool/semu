@@ -162,6 +162,11 @@ fn get_file_det_string(data: u32, ft: u32) -> String {
     })
 }
 
+pub struct OptionString {
+    pub opt_len: u32,
+    pub opt_ptr: u32,
+}
+
 pub struct NameRecord {
     pub name_lens: Vec<u32>,
     pub name_ptrs: Vec<u32>,
@@ -182,6 +187,14 @@ pub struct SMFileRecord {
     pub orig_file_lens: Vec<u32>,
     pub mime_type_len: u32,
     pub mime_type_ptr: u32,
+}
+
+#[allow(dead_code)]
+pub struct OptionsRecord {
+    pub rec_type: u32,
+    pub opts_count: u32,
+    pub opt_strs: Vec<OptionString>,
+    pub selected: u32,
 }
 
 #[allow(dead_code)]
@@ -259,6 +272,32 @@ impl SMFileRecord {
     }
 }
 
+// untested
+impl OptionsRecord {
+    pub fn parse(image: &SISImage, record: &Vec<u8>) -> Self {
+        let langs_count = image.header.langs_count as usize;
+        let opts_count = read_u32(record, 4) as usize;
+        let mut opt_strs: Vec<OptionString> = vec![];
+
+        for m in 0..opts_count {
+            for n in 0..langs_count {
+                let opt_str = OptionString {
+                    opt_len: read_u32(record, 8 + 8 * n * m),
+                    opt_ptr: read_u32(record, 12 + 12 * n * m),
+                };
+                opt_strs.push(opt_str);
+            }
+        }
+
+        Self {
+            rec_type: read_u32(record, 0),
+            opts_count: read_u32(record, 4),
+            opt_strs: opt_strs,
+            selected: 0,
+        }
+    }
+}
+
 impl IEIfRecord {
     pub fn parse(record: &Vec<u8>) -> Self {
         let cond_exp_len = read_u32(record, 4);
@@ -289,9 +328,11 @@ impl SISImage {
         let langs_count = image.header.langs_count as usize;
         let mut langs: Vec<String> = vec![];
         let mut file_records: Vec<SMFileRecord> = vec![];
+        let mut opts_records: Vec<OptionsRecord> = vec![];
         let mut ieif_records: Vec<IEIfRecord> = vec![];
         let mut eeif_records: Vec<EEIfRecord> = vec![];
         let mut cur_file_rec = 0;
+        let mut cur_opts_rec = 0;
         let mut cur_ieif_rec = 0;
         let mut cur_eeif_rec = 0;
         let mut next_rec_ptr = files_rec_start;
@@ -385,6 +426,41 @@ impl SISImage {
 
                         cur_file_rec += 1;
                     }
+                    2 => {
+                        let opts_count = read_u32(&image.bin_data, next_rec_ptr + 4) as usize;
+                        let rec_start = next_rec_ptr;
+                        let rec_end = rec_start + 16 + 8 * l * opts_count;
+                        let rec_data = image.bin_data[rec_start..rec_end].to_vec();
+                        let record = OptionsRecord::parse(image, &rec_data);
+
+                        opts_records.push(record);
+                        next_rec_ptr += 16 + 8 * l * opts_count;
+
+                        println!("\nFile {f} language: {}", langs[l]);
+                        println!(
+                            "File {f} record type: {}",
+                            get_rec_type_string(opts_records[cur_opts_rec].rec_type)
+                        );
+
+                        for n in 0..opts_count {
+                            let opt_name_start =
+                                opts_records[cur_opts_rec].opt_strs[cur_opts_rec].opt_ptr as usize;
+
+                            let opt_name_end = opt_name_start
+                                + opts_records[cur_opts_rec].opt_strs[cur_opts_rec].opt_len
+                                    as usize;
+
+                            let opt_name_data =
+                                image.bin_data[opt_name_start..opt_name_end].to_vec();
+
+                            let opt_name = from_utf8(&opt_name_data).unwrap().replace("\0", "");
+
+                            println!("Option {n} name: {opt_name}");
+                        }
+
+                        cur_file_rec -= 1;
+                        cur_opts_rec += 1;
+                    }
                     3 | 4 => {
                         let cond_exp_len = read_u32(&image.bin_data, next_rec_ptr + 4) as usize;
                         let rec_start = next_rec_ptr;
@@ -429,7 +505,7 @@ impl SISImage {
                         cur_file_rec -= 1;
                         cur_eeif_rec += 1;
                     }
-                    _ => todo!("Record type {}", get_rec_type_string(rec_type)),
+                    _ => panic!("Unknown record type {rec_type}"),
                 }
             }
         }
